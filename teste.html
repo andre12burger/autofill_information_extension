@@ -196,18 +196,24 @@
             Validação e Controles de Teste
         </h2>
         <p style="color: var(--gray-600); margin-bottom: 20px; line-height: 1.6;">
-            Compare os dados salvos com os campos preenchidos. Clique em <strong style="color: var(--primary-green);">Iniciar Validação</strong> 
-            para analisar a precisão em todos os casos de teste. O validador requer acesso à API Chrome Storage (use servidor HTTP, não file://).
+            Esta página tem duas funções: <strong style="color: var(--primary-green);">(1) Testar preenchimento automático</strong> - preencha os campos com sua extensão e veja se detecta corretamente, 
+            e <strong style="color: var(--primary-green);">(2) Validar precisão</strong> - compare dados salvos vs preenchidos (requer extensão instalada para acessar Chrome Storage).
         </p>
         
         <div class="info-box" style="margin-bottom: 20px;">
-            <p style="margin: 0 0 8px 0; font-weight: 600; color: var(--dark-green);">Importante: Use Servidor HTTP</p>
-            <p style="margin: 0 0 5px 0;">A API Chrome Storage não funciona com protocolo <code>file://</code>. Opções:</p>
-            <ul style="margin: 5px 0 0 20px; color: var(--gray-700);">
-                <li>VS Code: Clique-direito em teste.html → "Open with Live Server"</li>
-                <li>Python: <code>python -m http.server 8000</code> → abra http://localhost:8000/teste.html</li>
-                <li>Instale a extensão "Web Server for Chrome" e hospede a pasta</li>
-            </ul>
+            <p style="margin: 0 0 8px 0; font-weight: 600; color: var(--dark-green);">⚠️ Chrome Storage e Contexto de Extensão</p>
+            <p style="margin: 0 0 10px 0;">A API <code>chrome.storage</code> <strong>só funciona em contexto de extensão</strong>, mesmo via HTTPS (GitHub Pages).</p>
+            <p style="margin: 0 0 8px 0; font-weight: 600;">✅ Como usar a validação corretamente:</p>
+            <ol style="margin: 5px 0 0 20px; color: var(--gray-700); line-height: 1.8;">
+                <li><strong>Instale a extensão</strong> Smart Autofill Pro no Chrome</li>
+                <li><strong>Preencha seus dados</strong> na interface da extensão</li>
+                <li><strong>Abra esta página</strong> (GitHub Pages funciona perfeitamente)</li>
+                <li><strong>Clique no botão da extensão</strong> e selecione "Preencher Site!"</li>
+                <li><strong>Após o preenchimento</strong>, clique em "Iniciar Validação" abaixo</li>
+            </ol>
+            <p style="margin: 10px 0 0 0; color: var(--gray-600); font-size: 14px;">
+                <em>Nota: Se não tiver a extensão instalada, o validador extrairá dados dos campos já preenchidos (sempre 100%), mas você ainda pode usar esta página para testar qualquer extensão de autofill!</em>
+            </p>
         </div>
 
         <div style="display: flex; gap: 15px; justify-content: flex-start; flex-wrap: wrap;">
@@ -1641,14 +1647,19 @@
                     dadosExtraidos.usuario_complemento = complementos[0];
                 }
                 
-                console.warn('[Warning] Data extracted from filled fields (Chrome Storage unavailable):', dadosExtraidos);
+                console.warn('[Warning] Chrome Storage não disponível - Dados extraídos dos campos:', dadosExtraidos);
                 
-                alert('[Warning] Chrome Storage não disponível!\n\n' +
-                      'O validador está usando dados EXTRAÍDOS dos campos preenchidos, ' +
-                      'não os dados salvos na extensão.\n\n' +
-                      'Para validação precisa:\n' +
-                      '1. Abra esta página via servidor HTTP (Live Server, python -m http.server), OR\n' +
-                      '2. Carregue como extensão temporária no Chrome');
+                alert('⚠️ Chrome Storage não disponível!\n\n' +
+                      'A API Chrome Storage só funciona em CONTEXTO DE EXTENSÃO.\n' +
+                      'Mesmo em HTTPS (GitHub Pages), sites públicos não têm acesso.\n\n' +
+                      '✅ SOLUÇÃO: O validador está extraindo dados dos campos já preenchidos.\n' +
+                      'Isso significa que a validação compara "campo atual vs campo atual" (sempre 100%).\n\n' +
+                      '🎯 Para validação REAL dos dados salvos na extensão:\n' +
+                      '1. Instale a extensão no Chrome\n' +
+                      '2. Preencha os dados na extensão\n' +
+                      '3. Clique em "Preencher Site!" nesta página\n' +
+                      '4. Depois clique em "Iniciar Validação"\n\n' +
+                      'O validador funcionará porque a extensão tem acesso ao Chrome Storage.');
                 
                 resultadoAtual = validarPreenchimento(dadosExtraidos);
                 exibirResultado(resultadoAtual);

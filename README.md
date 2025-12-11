@@ -17,9 +17,15 @@
 
 ## 🌐 Demo ao Vivo
 
-**[👉 Testar a Suite de Testes Online](https://andre12burger.github.io/autofill_information_extension/teste.html)**
+**[👉 Abrir Suite de Testes Online](https://andre12burger.github.io/autofill_information_extension/teste.html)**
 
-Experimente a página de testes completa com 103 campos em 12 níveis de dificuldade. A página funciona perfeitamente com qualquer extensão de autofill para validar precisão e compatibilidade.
+Página de testes completa com **103 campos em 12 níveis de dificuldade**. Funciona perfeitamente para:
+
+- ✅ **Testar qualquer extensão de autofill** - Preencha e veja se detecta corretamente
+- ✅ **Validar precisão** - Com a extensão instalada, valide taxa de acerto em tempo real
+- ✅ **Benchmark de algoritmos** - Compare diferentes implementações de autofill
+
+> **Nota:** O recurso de validação (comparar dados salvos vs preenchidos) requer a extensão instalada, pois precisa acessar `chrome.storage`. A página de testes em si funciona normalmente via GitHub Pages!
 
 ---
 
