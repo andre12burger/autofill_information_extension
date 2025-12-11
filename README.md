@@ -2,6 +2,8 @@
 
 <div align="center">
 
+<img src="icons/icon128.png" alt="Smart Autofill Pro" width="120" height="120">
+
 ![Version](https://img.shields.io/badge/version-2.0.0-2d7a4f.svg)
 ![License](https://img.shields.io/badge/license-MIT-2d7a4f.svg)
 ![Chrome](https://img.shields.io/badge/Chrome-Extension-2d7a4f.svg)
@@ -10,6 +12,23 @@
 **Preenchimento inteligente de formulários com 100% de precisão**
 
 [🌐 Demo ao Vivo](https://andre12burger.github.io/autofill_information_extension/teste.html) • [📥 Instalação](#instalação) • [⚡ Recursos](#recursos) • [📖 Como Usar](#como-usar) • [🤝 Contribuir](#contribuindo)
+
+</div>
+
+---
+
+## 📸 Screenshots
+
+<div align="center">
+
+### Interface da Extensão
+<img src="screenshots/Screenshot_7.jpg" alt="Interface Principal" width="800">
+
+### Preenchimento Automático em Ação
+<img src="screenshots/Screenshot_8.jpg" alt="Preenchimento Automático" width="800">
+
+### Validação com 100% de Precisão
+<img src="screenshots/Screenshot_9.jpg" alt="Validação de Precisão" width="800">
 
 </div>
 
