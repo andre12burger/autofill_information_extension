@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Smart Autofill Pro",
+  "version": "2.0.0",
+  "description": "Preenchimento inteligente de formulários com suporte a múltiplos perfis, 24 campos, checkbox/radio/select, e 100% de precisão.",
+  "author": "André Luiz Diztel Burger",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Smart Autofill Pro - Preencher Formulários"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+F",
+        "mac": "Command+Shift+F"
+      },
+      "description": "Abrir Smart Autofill Pro"
+    }
+  }
+}

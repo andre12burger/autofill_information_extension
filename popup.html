@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --primary-green: #2d7a4f;
+            --light-green: #40a860;
+            --dark-green: #1e5538;
+            --white: #ffffff;
+            --black: #000000;
+            --gray-100: #f5f5f5;
+            --gray-200: #e0e0e0;
+            --gray-300: #bdbdbd;
+            --gray-400: #757575;
+            --gray-500: #616161;
+            --gray-600: #424242;
+            --gray-700: #303030;
+            --gray-800: #212121;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            width: 380px; 
+            max-height: 600px;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow-y: auto;
+            background: var(--white);
+        }
+        
+        /* HEADER FIXA */
+        .barra-acoes {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--primary-green);
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex;
+            gap: 10px;
+            flex-direction: column;
+        }
+        
+        .barra-acoes button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            font-family: inherit;
+        }
+        
+        .barra-acoes button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+        }
+        
+        .barra-acoes button:active {
+            transform: translateY(0);
+        }
+        
+        #btnPreencher {
+            background: var(--white);
+            color: var(--primary-green);
+            font-weight: 700;
+            font-size: 15px;
+        }
+        
+        #btnPreencher:hover {
+            background: var(--gray-100);
+        }
+        
+        .btn-secondary {
+            background: var(--gray-600);
+            color: var(--white);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--gray-700);
+        }
+        
+        /* CONTENT AREA */
+        .conteudo {
+            padding: 15px;
+            background: var(--white);
+        }
+        
+        h3 { 
+            margin-top: 0; 
+            margin-bottom: 15px;
+            color: var(--gray-800);
+            border-bottom: 3px solid var(--primary-green);
+            padding-bottom: 10px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .secao {
+            margin-bottom: 18px;
+            background: var(--gray-100);
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid var(--gray-200);
+        }
+        
+        .secao-titulo {
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--gray-700);
+            margin-bottom: 12px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: 0.3px;
+        }
+        
+        .secao-titulo:hover { 
+            color: var(--primary-green); 
+        }
+        
+        .secao-titulo::before {
+            content: '▼';
+            font-size: 10px;
+            display: inline-block;
+            transition: transform 0.2s ease;
+            color: var(--primary-green);
+        }
+        
+        .secao.collapsed .secao-titulo::before {
+            transform: rotate(-90deg);
+        }
+        
+        .campos {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            opacity: 1;
+        }
+        
+        .secao.collapsed .campos {
+            max-height: 0;
+            opacity: 0;
+        }
+        
+        label { 
+            font-weight: 600; 
+            font-size: 12px;
+            color: var(--gray-700);
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        input, select { 
+            width: 100%; 
+            margin-bottom: 10px; 
+            padding: 9px; 
+            box-sizing: border-box;
+            border: 2px solid var(--gray-300);
+            border-radius: 4px;
+            font-size: 13px;
+            background: var(--white);
+            font-family: inherit;
+            color: var(--gray-800);
+            transition: border-color 0.15s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-green);
+        }
+        
+        select {
+            cursor: pointer;
+        }
+        
+        .row {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .row input {
+            flex: 1;
+        }
+
+        .hint { 
+            font-size: 11px; 
+            color: var(--gray-500); 
+            margin-top: -6px; 
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <!-- BARRA DE AÇÕES -->
+    <div class="barra-acoes">
+        <button id="btnPreencher">Preencher Site</button>
+        
+        <div style="display: flex; gap: 8px;">
+            <button id="btnExportar" class="btn-secondary" style="flex: 1; padding: 9px; font-size: 12px;">
+                Exportar
+            </button>
+            <button id="btnImportar" class="btn-secondary" style="flex: 1; padding: 9px; font-size: 12px;">
+                Importar
+            </button>
+        </div>
+        
+        <div style="display: flex; gap: 8px;">
+            <button id="btnCopiarJSON" class="btn-secondary" style="flex: 1; padding: 9px; font-size: 12px;">
+                Copiar JSON
+            </button>
+            <button id="btnCopiarLogs" class="btn-secondary" style="flex: 1; padding: 9px; font-size: 12px;">
+                Copiar Logs
+            </button>
+        </div>
+        
+        <div id="statusSalvamento" style="text-align: center; color: white; font-size: 11px; opacity: 0; transition: opacity 0.3s; font-weight: 600;">
+            Salvo automaticamente
+        </div>
+    </div>
+    
+    <!-- Input invisível para importar arquivo -->
+    <input type="file" id="inputArquivo" accept=".json" style="display: none;">
+
+    <!-- CONTEÚDO -->
+    <div class="conteudo">
+        <h3>Meus Dados</h3>
+    
+    <!-- SEÇÃO: DADOS PESSOAIS -->
+    <div class="secao">
+        <div class="secao-titulo">
+            Dados Pessoais
+        </div>
+        <div class="campos" id="secao_dados_pessoais">
+            <label>Nome Completo:</label>
+            <input type="text" id="nome" placeholder="João da Silva">
+
+            <label>Data de Nascimento:</label>
+            <input type="text" id="dataNascimento" placeholder="DD/MM/AAAA" maxlength="10">
+            <div class="hint">Formato: 01/01/1990</div>
+
+            <div class="row">
+                <div style="flex: 1.5;">
+                    <label>CPF:</label>
+                    <input type="text" id="cpf" placeholder="000.000.000-00" maxlength="14">
+                </div>
+                <div style="flex: 1;">
+                    <label>RG:</label>
+                    <input type="text" id="rg" placeholder="00.000.000-0">
+                </div>
+            </div>
+
+            <div class="row">
+                <div style="flex: 1;">
+                    <label>Gênero:</label>
+                    <select id="genero">
+                        <option value="">Selecione</option>
+                        <option value="masculino">Masculino</option>
+                        <option value="feminino">Feminino</option>
+                        <option value="outro">Outro</option>
+                        <option value="prefiro-nao-dizer">Prefiro não dizer</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label>Estado Civil:</label>
+                    <select id="estadoCivil">
+                        <option value="">Selecione</option>
+                        <option value="solteiro">Solteiro(a)</option>
+                        <option value="casado">Casado(a)</option>
+                        <option value="divorciado">Divorciado(a)</option>
+                        <option value="viuvo">Viúvo(a)</option>
+                        <option value="uniao-estavel">União Estável</option>
+                    </select>
+                </div>
+            </div>
+
+            <label>Nome da Mãe:</label>
+            <input type="text" id="nomeMae" placeholder="Maria da Silva">
+
+            <label>Nome do Pai:</label>
+            <input type="text" id="nomePai" placeholder="José da Silva">
+            <div class="hint">Opcional - comum em cadastros bancários</div>
+        </div>
+    </div>
+
+    <!-- SEÇÃO: CONTATO -->
+    <div class="secao">
+        <div class="secao-titulo">
+            Contato
+        </div>
+        <div class="campos" id="secao_contato">
+            <label>E-mail Principal:</label>
+            <input type="email" id="email" placeholder="seu@email.com">
+
+            <label>E-mail Secundário:</label>
+            <input type="email" id="emailSecundario" placeholder="outro@email.com">
+            <div class="hint">Opcional - para recuperação de conta</div>
+
+            <label>Telefone/Celular:</label>
+            <input type="text" id="telefone" placeholder="(00) 00000-0000" maxlength="15">
+            <div class="hint">Formato: (11) 98765-4321</div>
+
+            <label>Telefone Comercial:</label>
+            <input type="text" id="telefoneComercial" placeholder="(00) 0000-0000" maxlength="14">
+            <div class="hint">Fixo - Formato: (11) 3456-7890</div>
+
+            <label>Contato de Emergência:</label>
+            <input type="text" id="nomeEmergencia" placeholder="Nome do contato">
+            <input type="text" id="telefoneEmergencia" placeholder="(00) 00000-0000" maxlength="15">
+            <div class="hint">Pessoa para contatar em caso de emergência</div>
+        </div>
+    </div>
+
+    <!-- SEÇÃO: PROFISSIONAL -->
+    <div class="secao">
+        <div class="secao-titulo">
+            Dados Profissionais
+        </div>
+        <div class="campos" id="secao_profissional">
+            <label>Profissão/Ocupação:</label>
+            <input type="text" id="profissao" placeholder="Ex: Engenheiro, Médico">
+
+            <label>Nome da Empresa:</label>
+            <input type="text" id="nomeEmpresa" placeholder="Empresa onde trabalha">
+
+            <label>Escolaridade:</label>
+            <select id="escolaridade">
+                <option value="">Selecione</option>
+                <option value="fundamental-incompleto">Fundamental Incompleto</option>
+                <option value="fundamental-completo">Fundamental Completo</option>
+                <option value="medio-incompleto">Médio Incompleto</option>
+                <option value="medio-completo">Médio Completo</option>
+                <option value="superior-incompleto">Superior Incompleto</option>
+                <option value="superior-completo">Superior Completo</option>
+                <option value="pos-graduacao">Pós-graduação</option>
+                <option value="mestrado">Mestrado</option>
+                <option value="doutorado">Doutorado</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- SEÇÃO: ENDEREÇO -->
+    <div class="secao">
+        <div class="secao-titulo">
+            Endereço
+        </div>
+        <div class="campos" id="secao_endereco">
+            <label>CEP:</label>
+            <input type="text" id="cep" placeholder="00000-000" maxlength="9">
+            
+            <label>Rua/Avenida:</label>
+            <input type="text" id="rua" placeholder="Av. Paulista">
+
+            <div class="row">
+                <div style="flex: 1;">
+                    <label>Número:</label>
+                    <input type="text" id="numero" placeholder="1000">
+                </div>
+                <div style="flex: 1.5;">
+                    <label>Complemento:</label>
+                    <input type="text" id="complemento" placeholder="Apto 101">
+                </div>
+            </div>
+
+            <label>Bairro:</label>
+            <input type="text" id="bairro" placeholder="Bela Vista">
+
+            <div class="row">
+                <div style="flex: 2;">
+                    <label>Cidade:</label>
+                    <input type="text" id="cidade" placeholder="São Paulo">
+                </div>
+                <div style="flex: 1;">
+                    <label>Estado:</label>
+                    <input type="text" id="estado" placeholder="SP" maxlength="2">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </div> <!-- Fim do conteúdo -->
+
+    <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+# node_modules (se usar npm)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs e editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Logs
+*.log
+logs/
+
+# Builds e distribuição
+dist/
+build/
+*.crx
+*.pem
+*.zip
+
+# Dados pessoais (não commitar!)
+dados-pessoais.json
+backup-*.json
+user-data.json
+
+# Testes
+coverage/
+.nyc_output/
+
+# Temporários
+tmp/
+temp/
+*.tmp
+
+# Ambiente
+.env
+.env.local
+.env.*.local
+
+# Sistema
+*.bak
+*.backup
+*~.nib
