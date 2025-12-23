@@ -83,8 +83,39 @@ const inputGenero = document.getElementById('genero');
 const inputEstadoCivil = document.getElementById('estadoCivil');
 const inputNomeMae = document.getElementById('nomeMae');
 const inputNomePai = document.getElementById('nomePai');
-const inputEmail = document.getElementById('email');
+let emailsList = document.getElementById('emails_principais_list');
+let btnAddEmail = document.getElementById('btnAddEmail');
 const inputEmailSecundario = document.getElementById('emailSecundario');
+
+let usuarioEmails = []; // [{ email: 'x@x.com', usar: true }, ...]
+
+// Função para garantir que o botão 'Adicionar' tenha o handler (usar quando DOM já existir)
+function setupAddButton() {
+    btnAddEmail = document.getElementById('btnAddEmail');
+    if (!btnAddEmail) return;
+    // Remova listeners antigos (seguro) e adicione o handler
+    btnAddEmail.replaceWith(btnAddEmail.cloneNode(true));
+    btnAddEmail = document.getElementById('btnAddEmail');
+    btnAddEmail.addEventListener('click', function() {
+        console.log('DEBUG: btnAddEmail clicked');
+        // Limite: não permite mais de 5 e-mails
+        if (usuarioEmails.length >= 5) {
+            alert('Você atingiu o limite de 5 e-mails. Remova um para adicionar outro.');
+            btnAddEmail.disabled = true;
+            return;
+        }
+        // Cria uma nova linha editável e já a marca como selecionada
+        usuarioEmails.forEach(u => u.usar = false);
+        usuarioEmails.push({ email: '', usar: true });
+        renderEmails(usuarioEmails);
+        saveEmails();
+        salvarDados();
+        // coloca foco no último input criado
+        const rows = emailsList.querySelectorAll('.email-row');
+        const lastInput = rows[rows.length-1]?.querySelector('input[type="email"]');
+        if (lastInput) setTimeout(() => { lastInput.focus(); }, 80);
+    });
+}
 const inputTelefone = document.getElementById('telefone');
 const inputTelefoneComercial = document.getElementById('telefoneComercial');
 const inputNomeEmergencia = document.getElementById('nomeEmergencia');
@@ -220,7 +251,7 @@ function validarCEP(cep) {
 chrome.storage.local.get([
     'usuario_nome', 'usuario_dataNascimento', 'usuario_cpf', 'usuario_rg',
     'usuario_genero', 'usuario_estadoCivil', 'usuario_nomeMae', 'usuario_nomePai',
-    'usuario_email', 'usuario_emailSecundario', 'usuario_telefone', 'usuario_telefoneComercial',
+    'usuario_email','usuario_emails','usuario_emailSecundario', 'usuario_telefone', 'usuario_telefoneComercial',
     'usuario_nomeEmergencia', 'usuario_telefoneEmergencia',
     'usuario_profissao', 'usuario_nomeEmpresa', 'usuario_escolaridade',
     'usuario_cep', 'usuario_rua', 'usuario_numero', 'usuario_complemento', 
@@ -234,7 +265,10 @@ chrome.storage.local.get([
     if (resultado.usuario_estadoCivil) inputEstadoCivil.value = resultado.usuario_estadoCivil;
     if (resultado.usuario_nomeMae) inputNomeMae.value = resultado.usuario_nomeMae;
     if (resultado.usuario_nomePai) inputNomePai.value = resultado.usuario_nomePai;
-    if (resultado.usuario_email) inputEmail.value = resultado.usuario_email;
+    // Backward compatibility: if legacy single email exists, migrate to usuario_emails
+    if (resultado.usuario_email && (!resultado.usuario_emails || !Array.isArray(resultado.usuario_emails))) {
+        usuarioEmails.push({ email: resultado.usuario_email, usar: true });
+    }
     if (resultado.usuario_emailSecundario) inputEmailSecundario.value = resultado.usuario_emailSecundario;
     if (resultado.usuario_telefone) inputTelefone.value = resultado.usuario_telefone;
     if (resultado.usuario_telefoneComercial) inputTelefoneComercial.value = resultado.usuario_telefoneComercial;
@@ -250,6 +284,18 @@ chrome.storage.local.get([
     if (resultado.usuario_bairro) inputBairro.value = resultado.usuario_bairro;
     if (resultado.usuario_cidade) inputCidade.value = resultado.usuario_cidade;
     if (resultado.usuario_estado) inputEstado.value = resultado.usuario_estado;
+
+    // Emails principais (retrocompat com usuario_email)
+    if (resultado.usuario_emails && Array.isArray(resultado.usuario_emails)) {
+        usuarioEmails = resultado.usuario_emails;
+        renderEmails(usuarioEmails);
+    } else if (resultado.usuario_email) {
+        usuarioEmails = [{ email: resultado.usuario_email, usar: true }];
+        renderEmails(usuarioEmails);
+    } else {
+        usuarioEmails = [];
+        renderEmails(usuarioEmails);
+    }
 });
 
 // 3. AUTO-SAVE: Salva automaticamente ao digitar (com debounce de 500ms)
@@ -271,12 +317,13 @@ function salvarDados() {
             inputCpf.style.borderColor = '#ced4da';
         }
         
-        if (inputEmail.value && !validarEmail(inputEmail.value)) {
-            avisos.push('E-mail inválido');
-            inputEmail.style.borderColor = 'red';
-        } else if (inputEmail.value) {
-            inputEmail.style.borderColor = '#ced4da';
-        }
+        // Validação: valida todos os e-mails da lista
+        usuarioEmails.forEach((ue, i) => {
+            if (ue.email && !validarEmail(ue.email)) {
+                avisos.push('E-mail inválido na lista (item ' + (i+1) + ')');
+            }
+        });
+
         
         if (inputTelefone.value && !validarTelefone(inputTelefone.value)) {
             avisos.push('Telefone inválido (use 10 ou 11 dígitos)');
@@ -307,7 +354,8 @@ function salvarDados() {
             usuario_estadoCivil: inputEstadoCivil.value,
             usuario_nomeMae: inputNomeMae.value,
             usuario_nomePai: inputNomePai.value,
-            usuario_email: inputEmail.value,
+            usuario_email: (usuarioEmails[0] || {}).email || '',
+            usuario_emails: usuarioEmails,
             usuario_emailSecundario: inputEmailSecundario.value,
             usuario_telefone: inputTelefone.value,
             usuario_telefoneComercial: inputTelefoneComercial.value,
@@ -322,7 +370,8 @@ function salvarDados() {
             usuario_complemento: inputComplemento.value,
             usuario_bairro: inputBairro.value,
             usuario_cidade: inputCidade.value,
-            usuario_estado: inputEstado.value
+            usuario_estado: inputEstado.value,
+            usuario_emails: usuarioEmails
         }, function() {
             // Feedback visual discreto
             if (statusSalvamento) {
@@ -337,7 +386,7 @@ function salvarDados() {
 
 // Adiciona listeners em TODOS os inputs/selects para auto-save
 [inputNome, inputDataNascimento, inputCpf, inputRg, inputGenero, inputEstadoCivil,
- inputNomeMae, inputNomePai, inputEmail, inputEmailSecundario, inputTelefone,
+ inputNomeMae, inputNomePai, inputEmailSecundario, inputTelefone,
  inputTelefoneComercial, inputNomeEmergencia, inputTelefoneEmergencia,
  inputProfissao, inputNomeEmpresa, inputEscolaridade, inputCep, inputRua,
  inputNumero, inputComplemento, inputBairro, inputCidade, inputEstado
@@ -348,14 +397,311 @@ function salvarDados() {
     }
 });
 
+// Adiciona botões de preencher individual para campos importantes
+if (typeof addFillButtons === 'function') addFillButtons();
+// garante que o campo de adicionar não receba nenhum botão de preencher
+if (typeof removeAddInputFillButton === 'function') removeAddInputFillButton();
+
+// Caso o DOM não estivesse pronto quando o script rodou, garante elementos e handlers agora
+// Garante que o setup seja executado imediatamente (popup.js é carregado no final do body, mas reforçamos)
+setupAddButton();
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (!emailsList) emailsList = document.getElementById('emails_principais_list');
+    setupAddButton();
+    if (typeof removeAddInputFillButton === 'function') removeAddInputFillButton();
+
+    // Limpa botões que possam estar fora da área de conteúdo (resíduo de renderizações anteriores)
+    Array.from(document.querySelectorAll('.fill-single-btn, .fill-single-row-btn')).forEach(b => {
+        if (!b.closest('.conteudo')) b.remove();
+    });
+
+    // Re-executa addFillButtons para posicionamento correto
+    if (typeof addFillButtons === 'function') addFillButtons();
+});
+
 // Remove listeners de validação inline (agora só valida ao preencher)
 // Validações ficam silenciosas
+
+// Funções para gerenciar múltiplos e-mails principais (adicionar/remover/usar)
+function renderEmails(emails) {
+    if (!emailsList) return;
+    emailsList.innerHTML = '';
+    emails.forEach((e, idx) => {
+        const row = document.createElement('div');
+        row.className = 'email-row' + (e.usar ? ' email-selected' : '');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'use-checkbox';
+        cb.checked = !!e.usar;
+        cb.addEventListener('change', function() {
+            if (!cb.checked) {
+                // Impede desmarcar (comportamento tipo radio)
+                cb.checked = true;
+                return;
+            }
+            // Marca apenas este como selecionado
+            usuarioEmails.forEach((ue, ui) => ue.usar = (ui === idx));
+            renderEmails(usuarioEmails);
+            saveEmails();
+        });
+        const inp = document.createElement('input');
+        inp.type = 'email';
+        inp.value = e.email || '';
+        inp.addEventListener('input', function() {
+            usuarioEmails[idx].email = inp.value;
+            saveEmails();
+        });
+        const btnFillRow = document.createElement('button');
+        btnFillRow.type = 'button';
+        btnFillRow.className = 'fill-single-row-btn';
+        btnFillRow.title = 'Preencher este e-mail na página atual';
+        btnFillRow.setAttribute('aria-label', 'Preencher este e-mail na página atual');
+        btnFillRow.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        btnFillRow.addEventListener('click', function() {
+            const value = usuarioEmails[idx].email || '';
+            if (!value) { alert('Este e-mail está vazio'); return; }
+            const dados = { email: value };
+            chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+                if (tabs.length === 0) return;
+                chrome.scripting.executeScript({
+                    target: { tabId: tabs[0].id },
+                    func: preencherNaPagina,
+                    args: [dados, { onlyField: 'email' }]
+                });
+            });
+        });
+        const btnRem = document.createElement('button');
+        btnRem.type = 'button';
+        btnRem.className = 'remove-email';
+        btnRem.innerText = 'Remover';
+        btnRem.addEventListener('click', function() {
+            const removedWasSelected = usuarioEmails[idx].usar;
+            usuarioEmails.splice(idx, 1);
+            if (removedWasSelected && usuarioEmails.length > 0) {
+                usuarioEmails[0].usar = true;
+            }
+            renderEmails(usuarioEmails);
+            saveEmails();
+        });
+        // Coloca o input dentro de wrapper para posicionar botão dentro da caixa
+        const inpWrapper = document.createElement('div');
+        inpWrapper.className = 'input-with-btn';
+        inpWrapper.appendChild(inp);
+        // torna btnFillRow o botão interno (reutiliza classe comum)
+        btnFillRow.classList.add('fill-single-btn');
+        inpWrapper.appendChild(btnFillRow);
+
+        row.appendChild(cb);
+        row.appendChild(inpWrapper);
+        row.appendChild(btnRem);
+        emailsList.appendChild(row);
+    });
+
+    // Remove botão de preenchimento que possa ter sido inserido junto ao input de adicionar (evita confusão)
+    function removeAddInputFillButton() {
+        const addInput = document.getElementById('email');
+        if (!addInput) return;
+        // remove botão logo depois do input (se for o caso)
+        const next = addInput.nextElementSibling;
+        if (next && next.classList && (next.classList.contains('fill-single-btn') || next.classList.contains('fill-single-row-btn'))) {
+            next.remove();
+        }
+        // limpa quaisquer botões de preenchimento que não pertençam à lista de emails
+        const parent = addInput.parentElement;
+        if (parent) {
+            parent.querySelectorAll('.fill-single-btn, .fill-single-row-btn').forEach(el => {
+                if (!el.closest('#emails_principais_list')) el.remove();
+            });
+        }
+    }
+
+    // Atualiza estado do botão Adicionar e hint com contagem
+    const hintEl = document.querySelector('#emails_principais_wrapper .hint');
+    if (btnAddEmail) {
+        btnAddEmail.disabled = emails.length >= 5;
+        btnAddEmail.title = btnAddEmail.disabled ? 'Limite de 5 e-mails atingido' : 'Adicionar';
+    }
+    if (hintEl) {
+        hintEl.innerText = `Clique em Adicionar para criar um novo e-mail editável (${emails.length}/5). Marque 'Usar' para escolher o e-mail principal.`;
+    }
+
+    // chama para garantir que o campo de adicionar fique limpo de botões
+    removeAddInputFillButton();
+
+    // Garante que os botões de preenchimento existam em todos os campos após renderizar
+    if (typeof addFillButtons === 'function') addFillButtons();
+}
+
+function saveEmails() {
+    // Garante que apenas um email esteja marcado como 'usar'
+    let chosenIndex = usuarioEmails.findIndex(e => e.usar);
+    if (chosenIndex === -1 && usuarioEmails.length > 0) {
+        usuarioEmails[0].usar = true;
+    } else {
+        usuarioEmails.forEach((u,i) => u.usar = (i === chosenIndex));
+    }
+    // Trima lista para o máximo permitido (segurança)
+    if (usuarioEmails.length > 5) {
+        usuarioEmails = usuarioEmails.slice(0,5);
+    }
+    chrome.storage.local.set({ usuario_emails: usuarioEmails }, function() {
+        if (statusSalvamento) {
+            statusSalvamento.style.opacity = '1';
+            setTimeout(() => { statusSalvamento.style.opacity = '0'; }, 1200);
+        }
+    });
+}
+
+ 
+
+// Adiciona botões "Preencher só esse campo" dentro do próprio input/select
+function inferFieldKeyFromElement(el) {
+    const s = ((el.id || '') + ' ' + (el.name || '') + ' ' + (el.placeholder || '') + ' ' + (el.className || '')).toLowerCase();
+    const map = [
+        ['dataNascimento', ['data', 'nasc', 'birth', 'birthday', 'dob']],
+        ['cpf', ['cpf', 'cadastro pessoa', 'ssn', 'tax', 'tax id']],
+        ['rg', ['rg', 'identidade', 'id card', 'id_card']],
+        ['telefoneComercial', ['comercial', 'work', 'office', 'fixo', 'landline']],
+        ['telefone', ['telefone', 'cel', 'phone', 'mobile', 'fone']],
+        ['cep', ['cep', 'postal', 'zip', 'codigo postal', 'codigo postal']],
+        ['rua', ['rua', 'logradouro', 'street', 'address', 'avenida', 'av.']],
+        ['numero', ['nº', 'numero', 'number', 'no.']],
+        ['complemento', ['complemento', 'apt', 'apto', 'suite']],
+        ['bairro', ['bairro', 'neighborhood', 'district']],
+        ['cidade', ['cidade', 'city', 'municipio', 'municipio']],
+        ['estado', ['uf', 'estado', 'state', 'province']],
+        ['genero', ['gênero', 'genero', 'sexo', 'gender']],
+        ['estadoCivil', ['estado civil', 'casado', 'solteiro', 'marital']],
+        ['nomeMae', ['mãe', 'mae', 'mother']],
+        ['nomePai', ['pai', 'father']],
+        ['profissao', ['profissão', 'profissao', 'occupation', 'job']],
+        ['nomeEmpresa', ['empresa', 'company', 'employer']],
+        ['escolaridade', ['escolaridade', 'education', 'nivel']],
+        ['emailSecundario', ['secundario', 'secondary', 'alternate', 'outro email']],
+        ['nome', ['nome', 'name', 'full name', 'firstname', 'lastname']],
+    ];
+    for (const [key, patterns] of map) {
+        if (patterns.some(p => s.includes(p))) return key;
+    }
+    // fallback: if element type is email
+    if (el.type === 'email') return 'email';
+    return null;
+}
+
+function addFillButtons() {
+    // limita à área principal do conteúdo para evitar botões soltos no header
+    const container = document.querySelector('.conteudo') || document.body;
+    // seleciona todos os inputs, selects, textareas visíveis, exceto checkboxes/radios/buttons/password
+    const selectors = 'input:not([type=hidden]):not([type=button]):not([type=submit]):not([type=checkbox]):not([type=radio]):not([type=password]), select, textarea';
+    const campos = Array.from(container.querySelectorAll(selectors));
+
+    campos.forEach(el => {
+        // não adicionar dentro da lista de emails (já tem botão por linha)
+        if (el.closest('#emails_principais_list')) return;
+        // não adicionar se já dentro de wrapper
+        if (el.parentElement && el.parentElement.classList && (el.parentElement.classList.contains('input-with-btn') || el.parentElement.classList.contains('select-with-btn'))) return;
+        // evita colocar em elementos da barra de ações ou cabeçalho
+        if (el.closest('.barra-acoes') || el.closest('h3') || el.closest('.secao-titulo')) return;
+
+        // alguns elementos (labels, buttons) pulados
+        const tag = el.tagName.toLowerCase();
+        if (tag === 'select' || tag === 'input' || tag === 'textarea') {
+            if (tag === 'select') {
+                // Mantém a seta nativa visível: botão posicionado do lado de fora
+                const wrapper = document.createElement('div');
+                wrapper.className = 'select-with-btn';
+                el.parentElement.replaceChild(wrapper, el);
+                wrapper.appendChild(el);
+
+                const btnOut = document.createElement('button');
+                btnOut.type = 'button';
+                btnOut.className = 'fill-single-outside';
+                btnOut.title = 'Preencher somente esse dado';
+                btnOut.setAttribute('aria-label', 'Preencher somente esse dado');
+                // usa o mesmo ícone e estilo dos botões internos para manter padrão
+                btnOut.innerHTML = '<svg class="fill-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+                btnOut.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const key = inferFieldKeyFromElement(el) || (el.id || el.name || '').replace(/[^a-zA-Z0-9_\-]/g, '');
+                    const value = (el.value || '').toString().trim();
+                    if (!value) { alert('Nenhum valor disponível para preencher neste campo'); return; }
+                    const dados = {};
+                    if (key) dados[key] = value;
+                    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+                        if (tabs.length === 0) return;
+                        chrome.scripting.executeScript({
+                            target: { tabId: tabs[0].id },
+                            func: preencherNaPagina,
+                            args: [dados, { onlyField: key || null }]
+                        });
+                    });
+                });
+
+                wrapper.appendChild(btnOut);
+            } else {
+                // input/textarea: cria wrapper com botão dentro da caixa
+                const wrapper = document.createElement('div');
+                wrapper.className = 'input-with-btn';
+                el.parentElement.replaceChild(wrapper, el);
+                wrapper.appendChild(el);
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'fill-single-btn';
+                btn.title = 'Preencher somente esse dado';
+                btn.setAttribute('aria-label', 'Preencher somente esse dado');
+                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    // inferir chave de campo
+                    const key = inferFieldKeyFromElement(el) || (el.id || el.name || '').replace(/[^a-zA-Z0-9_\-]/g, '');
+                    const value = (el.value || '').toString().trim();
+                    if (!value) { alert('Nenhum valor disponível para preencher neste campo'); return; }
+                    const dados = {};
+                    if (key) {
+                        dados[key] = value;
+                        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+                            if (tabs.length === 0) return;
+                            chrome.scripting.executeScript({
+                                target: { tabId: tabs[0].id },
+                                func: preencherNaPagina,
+                                args: [dados, { onlyField: key }]
+                            });
+                        });
+                    } else {
+                        // sem key, envia apenas value e deixa o robô tentar (pior caso)
+                        const d = { generic: value };
+                        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+                            if (tabs.length === 0) return;
+                            chrome.scripting.executeScript({
+                                target: { tabId: tabs[0].id },
+                                func: preencherNaPagina,
+                                args: [d, { onlyField: null }]
+                            });
+                        });
+                    }
+                });
+
+                wrapper.appendChild(btn);
+            }
+        }
+    });
+
+    // remove qualquer botão criado fora da área .conteudo (limpeza extra)
+    Array.from(document.querySelectorAll('.fill-single-btn, .fill-single-outside, .fill-single-row-btn')).forEach(b => {
+        if (!b.closest('.conteudo')) b.remove();
+    });
+}
 
 // 4. Botão PREENCHER: Envia o robô para a página
 if (btnPreencher) {
     btnPreencher.addEventListener('click', function() {
         
         // Pega os valores atuais dos inputs
+        const primaryEmail = (usuarioEmails.find(e => e.usar) || {}).email || '';
         const dadosParaEnviar = {
             nome: inputNome.value,
             dataNascimento: inputDataNascimento.value,
@@ -365,7 +711,7 @@ if (btnPreencher) {
             estadoCivil: inputEstadoCivil.value,
             nomeMae: inputNomeMae.value,
             nomePai: inputNomePai.value,
-            email: inputEmail.value,
+            email: primaryEmail,
             emailSecundario: inputEmailSecundario.value,
             telefone: inputTelefone.value,
             telefoneComercial: inputTelefoneComercial.value,
@@ -405,7 +751,7 @@ if (btnPreencher) {
             });
         });
     });
-}
+} 
 
 // ======================================================
 // PARTE 1.5: EXPORTAR/IMPORTAR DADOS (BACKUP/RESTORE)
@@ -611,7 +957,9 @@ if (inputArquivo) {
 // PARTE 2: O ROBÔ DETETIVE (Roda dentro do site)
 // ======================================================
 
-function preencherNaPagina(dados) {
+function preencherNaPagina(dados, options = {}) {
+    const onlyField = options && options.onlyField ? options.onlyField : null;
+    function shouldProcess(field) { return !onlyField || onlyField === field; }
     console.log("🤖 Robô Autofill Inteligente iniciado...");
     console.log("═══════════════════════════════════════");
     console.log("DADOS SALVOS NA EXTENSÃO:");
@@ -1057,13 +1405,13 @@ function preencherNaPagina(dados) {
         // 3. VERIFICAÇÃO COM O DICIONÁRIO (Ordem otimizada!)
         
         // 3.1 - EMAIL (mais específico, verifica primeiro)
-        if (palavrasChave.email.some(termo => pistas.includes(termo)) || input.type === 'email') {
+        if (shouldProcess('email') && (palavrasChave.email.some(termo => pistas.includes(termo)) || input.type === 'email')) {
             preencher(input, dados.email);
             return;
         }
 
         // 3.2 - CEP (verificação rigorosa ANTES de tudo)
-        if (palavrasChave.cep.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('cep') && palavrasChave.cep.some(termo => pistas.includes(termo))) {
             const ehCEP = pistas.includes('cep') || pistas.includes('postal') || pistas.includes('zip');
             const naoCPF = !pistas.includes('cpf') && !pistas.includes('tax');
             
@@ -1074,7 +1422,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.3 - CPF (ANTES de telefone - muito rigoroso)
-        if (palavrasChave.cpf.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('cpf') && palavrasChave.cpf.some(termo => pistas.includes(termo))) {
             const ehCPF = pistas.includes('cpf') || pistas.includes('cadastro') || 
                          pistas.includes('fisica') || pistas.includes('física') ||
                          pistas.includes('documento') || pistas.includes('dni');
@@ -1102,7 +1450,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.4 - TELEFONE (depois de CPF, mas só se não for documento)
-        if (palavrasChave.telefone.some(termo => pistas.includes(termo)) || input.type === 'tel') {
+        if (shouldProcess('telefone') && (palavrasChave.telefone.some(termo => pistas.includes(termo)) || input.type === 'tel')) {
             const naoCPF = !pistas.includes('cpf') && !pistas.includes('cadastro') && 
                           !pistas.includes('documento') && !pistas.includes('fisica');
             
@@ -1149,7 +1497,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.6 - DATA DE NASCIMENTO (verificação rigorosa)
-        if (palavrasChave.dataNascimento.some(termo => pistas.includes(termo)) || input.type === 'date') {
+        if (shouldProcess('dataNascimento') && (palavrasChave.dataNascimento.some(termo => pistas.includes(termo)) || input.type === 'date')) {
             // Não preenche se parecer ser cidade ou nome
             const pareceOutroCampo = pistas.includes('cidade') || pistas.includes('city') || 
                                      pistas.includes('município') || pistas.includes('nome') ||
@@ -1205,7 +1553,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.7 - NÚMERO (MUITO ESPECÍFICO - só em contexto de endereço)
-        if (palavrasChave.numero.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('numero') && palavrasChave.numero.some(termo => pistas.includes(termo))) {
             // Só preenche se tiver ID/name MUITO específico
             const ehNumeroEndereco = (input.id && (input.id.includes('num_') || input.id.includes('_num') || input.id === 'numero')) ||
                                      (input.name && (input.name.includes('num_') || input.name.includes('_num') || input.name === 'number'));
@@ -1227,7 +1575,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.7.1 - ENDEREÇO COMPLETO (campo único com rua + número + complemento)
-        if (palavrasChave.enderecoCompleto.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('enderecoCompleto') && palavrasChave.enderecoCompleto.some(termo => pistas.includes(termo))) {
             const ehEnderecoCompleto = pistas.includes('completo') || pistas.includes('full') || 
                                       pistas.includes('residencial') || pistas.includes('residential');
             
@@ -1243,7 +1591,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.8 - RUA/ENDEREÇO (mais agressivo)
-        if (palavrasChave.rua.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('rua') && palavrasChave.rua.some(termo => pistas.includes(termo))) {
             const ehRua = pistas.includes('rua') || pistas.includes('logradouro') || 
                          pistas.includes('street') || pistas.includes('address') ||
                          pistas.includes('avenida') || pistas.includes('av') ||
@@ -1274,7 +1622,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.9 - COMPLEMENTO (mais permissivo)
-        if (palavrasChave.complemento.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('complemento') && palavrasChave.complemento.some(termo => pistas.includes(termo))) {
             if (dados.complemento) {
                 preencher(input, dados.complemento);
                 return;
@@ -1282,7 +1630,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.10 - BAIRRO (mais permissivo)
-        if (palavrasChave.bairro.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('bairro') && palavrasChave.bairro.some(termo => pistas.includes(termo))) {
             if (dados.bairro) {
                 preencher(input, dados.bairro);
                 return;
@@ -1290,7 +1638,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.11 - CIDADE (mais flexível, mas evita confusão com RUA)
-        if (palavrasChave.cidade.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('cidade') && palavrasChave.cidade.some(termo => pistas.includes(termo))) {
             const naoEhData = input.type !== 'date' && 
                              !input.name.includes('dob') && 
                              !input.id.includes('birth');
@@ -1306,7 +1654,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.12 - ESTADO (mais permissivo - suporta checkbox/radio/select)
-        if (palavrasChave.estado.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('estado') && palavrasChave.estado.some(termo => pistas.includes(termo))) {
             if (dados.estado) {
                 preencher(input, dados.estado, 'estado');
                 return;
@@ -1314,7 +1662,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.8 - GÊNERO (verificação específica - suporta checkbox/radio/select)
-        if (palavrasChave.genero.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('genero') && palavrasChave.genero.some(termo => pistas.includes(termo))) {
             if (dados.genero) {
                 preencher(input, dados.genero, 'genero');
                 return;
@@ -1322,7 +1670,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.9 - ESTADO CIVIL (suporta checkbox/radio/select)
-        if (palavrasChave.estadoCivil.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('estadoCivil') && palavrasChave.estadoCivil.some(termo => pistas.includes(termo))) {
             if (dados.estadoCivil) {
                 preencher(input, dados.estadoCivil, 'estadoCivil');
                 return;
@@ -1330,7 +1678,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.10 - NOME DA MÃE
-        if (palavrasChave.nomeMae.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('nomeMae') && palavrasChave.nomeMae.some(termo => pistas.includes(termo))) {
             const ehMae = pistas.includes('mãe') || pistas.includes('mae') || pistas.includes('mother');
             if (ehMae && dados.nomeMae) {
                 preencher(input, dados.nomeMae);
@@ -1339,7 +1687,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.11 - NOME DO PAI
-        if (palavrasChave.nomePai.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('nomePai') && palavrasChave.nomePai.some(termo => pistas.includes(termo))) {
             const ehPai = pistas.includes('pai') || pistas.includes('father') || pistas.includes('padre');
             if (ehPai && dados.nomePai) {
                 preencher(input, dados.nomePai);
@@ -1348,7 +1696,7 @@ function preencherNaPagina(dados) {
         }
         
         // 3.11.1 - ESCOLARIDADE (suporta checkbox/radio/select)
-        if (palavrasChave.escolaridade.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('escolaridade') && palavrasChave.escolaridade.some(termo => pistas.includes(termo))) {
             if (dados.escolaridade) {
                 preencher(input, dados.escolaridade, 'escolaridade');
                 return;
@@ -1356,7 +1704,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.12 - EMAIL SECUNDÁRIO (antes do email principal)
-        if (palavrasChave.emailSecundario.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('emailSecundario') && palavrasChave.emailSecundario.some(termo => pistas.includes(termo))) {
             const ehSecundario = pistas.includes('secundário') || pistas.includes('secundario') || 
                                 pistas.includes('alternativo') || pistas.includes('secondary') || 
                                 pistas.includes('alternate');
@@ -1367,7 +1715,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.13 - TELEFONE COMERCIAL (antes do telefone normal)
-        if (palavrasChave.telefoneComercial.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('telefoneComercial') && palavrasChave.telefoneComercial.some(termo => pistas.includes(termo))) {
             const ehComercial = pistas.includes('comercial') || pistas.includes('trabalho') || 
                               pistas.includes('fixo') || pistas.includes('business') || 
                               pistas.includes('work') || pistas.includes('landline');
@@ -1378,7 +1726,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.14 - NOME EMERGÊNCIA
-        if (palavrasChave.nomeEmergencia.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('nomeEmergencia') && palavrasChave.nomeEmergencia.some(termo => pistas.includes(termo))) {
             const ehEmergencia = pistas.includes('emergência') || pistas.includes('emergencia') || 
                                 pistas.includes('emergency');
             const naoEhTelefone = !pistas.includes('telefone') && !pistas.includes('phone') && 
@@ -1390,7 +1738,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.15 - TELEFONE EMERGÊNCIA
-        if (palavrasChave.telefoneEmergencia.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('telefoneEmergencia') && palavrasChave.telefoneEmergencia.some(termo => pistas.includes(termo))) {
             const ehEmergencia = pistas.includes('emergência') || pistas.includes('emergencia') || 
                                 pistas.includes('emergency');
             const ehTelefone = pistas.includes('telefone') || pistas.includes('phone') || 
@@ -1402,7 +1750,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.16 - PROFISSÃO
-        if (palavrasChave.profissao.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('profissao') && palavrasChave.profissao.some(termo => pistas.includes(termo))) {
             const naoEhEmpresa = !pistas.includes('empresa') && !pistas.includes('company');
             if (naoEhEmpresa && dados.profissao) {
                 preencher(input, dados.profissao);
@@ -1411,7 +1759,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.17 - NOME DA EMPRESA
-        if (palavrasChave.nomeEmpresa.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('nomeEmpresa') && palavrasChave.nomeEmpresa.some(termo => pistas.includes(termo))) {
             const ehEmpresa = pistas.includes('empresa') || pistas.includes('company') || 
                             pistas.includes('empregador') || pistas.includes('employer');
             if (ehEmpresa && dados.nomeEmpresa) {
@@ -1421,7 +1769,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.18 - ESCOLARIDADE
-        if (palavrasChave.escolaridade.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('escolaridade') && palavrasChave.escolaridade.some(termo => pistas.includes(termo))) {
             if (dados.escolaridade) {
                 preencher(input, dados.escolaridade);
                 return;
@@ -1429,7 +1777,7 @@ function preencherNaPagina(dados) {
         }
 
         // 3.19 - NOME (prioridade alta se tiver "nome" ou "name" explícito)
-        if (palavrasChave.nome.some(termo => pistas.includes(termo))) {
+        if (shouldProcess('nome') && palavrasChave.nome.some(termo => pistas.includes(termo))) {
             const ehNome = pistas.includes('nome') || pistas.includes('name') || 
                           input.id.includes('nome') || input.name.includes('nome') ||
                           input.id.includes('name') || input.name.includes('name');

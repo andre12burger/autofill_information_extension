@@ -187,8 +187,14 @@
             gap: 10px;
         }
         
-        .row input {
-            flex: 1;
+        /* Em linhas (.row): por padrão cada filho ocupa metade (50%).
+           Se existir apenas um filho, ele ocupa 100% (regra :only-child). */
+        .row > * {
+            flex: 1 1 50%;
+            min-width: 0;
+        }
+        .row > *:only-child {
+            flex: 1 1 100%;
         }
 
         .hint { 
@@ -197,6 +203,105 @@
             margin-top: -6px; 
             margin-bottom: 10px;
             line-height: 1.4;
+        }
+        /* Botão dentro do campo (posicionado à direita) */
+        .input-with-btn { position: relative; display: block; width: 100%; margin-bottom: 10px; }
+        .row .input-with-btn { flex: 1 1 auto; min-width: 0; }
+        .input-with-btn > input, .input-with-btn > textarea, .input-with-btn > select {
+            padding-right: 48px; /* espaço para o botão */
+            box-sizing: border-box;
+            width: 100%;
+            flex: 1 1 auto;
+            margin: 0; /* remove gaps que atrapalham centralização */
+            min-width: 0;
+        }
+        .fill-single-btn {
+            position: absolute; /* garante centralização mesmo em inputs altos */
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            font-size: 14px;
+            border: 1px solid var(--gray-300);
+            background: var(--white);
+            color: var(--primary-green);
+            border-radius: 6px;
+            cursor: pointer;
+            z-index: 20;
+        }
+        /* Botão para selects fica fora da caixa, sem sobrepor a seta nativa */
+        .select-with-btn { display: inline-flex; align-items:center; gap:8px; width:100%; }
+        .select-with-btn select { box-sizing: border-box; width: calc(100% - 40px); /* deixa espaço para o botão */ padding-right: 12px; }
+        .fill-single-outside {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            width:28px;
+            height:28px;
+            padding: 0;
+            border:1px solid var(--gray-300);
+            background:var(--white);
+            border-radius:6px;
+            color:var(--primary-green);
+            cursor:pointer;
+            margin-left: 8px;
+        }
+        .select-with-btn { display:inline-flex; align-items:center; gap:8px; width:100%; }
+        /* Ajustes para email rows */
+        .email-row { display:flex; gap:8px; align-items:center; }
+        .email-row .input-with-btn { flex:1 1 auto; margin-bottom:0; }
+        .hint { display:block; margin-top:6px; margin-bottom:8px; }
+        .fill-single-btn:hover { background: var(--gray-100); }
+        .fill-single-btn svg, .fill-single-outside svg, .fill-single-row-btn svg, .fill-icon { display:block; width:14px; height:14px; }        .emails-list { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+        .email-row { display:flex; gap:8px; align-items:center; }
+        .email-row .use-checkbox {
+            flex: 0 0 auto;
+            width: 18px;
+            height: 18px;
+            margin: 0 6px 0 0;
+            cursor: pointer;
+        }
+        .email-row input[type="email"] {
+            flex: 1 1 auto;
+            min-width: 160px;
+            padding: 8px;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+        .fill-single-row-btn {
+            width: 32px;
+            height: 32px;
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--gray-300);
+            background: var(--white);
+            color: var(--primary-green);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .fill-single-row-btn svg { width:14px; height:14px; }
+        .email-row .remove-email {
+            flex: 0 0 auto;
+            padding:6px 8px;
+            font-size:12px;
+            background:#ffdddd;
+            border:1px solid #ff9999;
+            color:#991111;
+            border-radius:4px;
+            cursor:pointer;
+        }
+        .email-row.email-selected {
+            background: #e8f7ee;
+            border: 1px solid #28a745;
+            border-radius: 6px;
+            padding: 6px;
         }
     </style>
 </head>
@@ -299,7 +404,13 @@
         </div>
         <div class="campos" id="secao_contato">
             <label>E-mail Principal:</label>
-            <input type="email" id="email" placeholder="seu@email.com">
+            <div id="emails_principais_wrapper">
+                <div id="emails_principais_list" class="emails-list"></div>
+                <div style="display:flex; gap:8px; margin-top:6px;">
+                    <button id="btnAddEmail" class="btn-secondary" type="button" style="padding:9px; font-size:12px;">Adicionar</button>
+                </div>
+                <div class="hint">Clique em <strong>Adicionar</strong> para criar um novo e-mail editável; marque 'Usar' para escolher o e-mail principal.</div>
+            </div>
 
             <label>E-mail Secundário:</label>
             <input type="email" id="emailSecundario" placeholder="outro@email.com">
